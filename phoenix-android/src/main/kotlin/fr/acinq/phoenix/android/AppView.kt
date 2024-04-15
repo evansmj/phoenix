@@ -63,9 +63,9 @@ import fr.acinq.phoenix.android.components.Button
 import fr.acinq.phoenix.android.components.Dialog
 import fr.acinq.phoenix.android.components.openLink
 import fr.acinq.phoenix.android.home.HomeView
-import fr.acinq.phoenix.android.init.CreateWalletView
-import fr.acinq.phoenix.android.init.InitWallet
-import fr.acinq.phoenix.android.init.RestoreWalletView
+import fr.acinq.phoenix.android.initwallet.create.CreateWalletView
+import fr.acinq.phoenix.android.initwallet.InitWallet
+import fr.acinq.phoenix.android.initwallet.restore.RestoreWalletView
 import fr.acinq.phoenix.android.intro.IntroView
 import fr.acinq.phoenix.android.payments.receive.ReceiveView
 import fr.acinq.phoenix.android.payments.ScanDataView
@@ -81,6 +81,7 @@ import fr.acinq.phoenix.android.settings.displayseed.DisplaySeedView
 import fr.acinq.phoenix.android.settings.fees.AdvancedIncomingFeePolicy
 import fr.acinq.phoenix.android.settings.fees.LiquidityPolicyView
 import fr.acinq.phoenix.android.payments.liquidity.RequestLiquidityView
+import fr.acinq.phoenix.android.services.LocalBackupWorker
 import fr.acinq.phoenix.android.settings.walletinfo.FinalWalletInfo
 import fr.acinq.phoenix.android.settings.walletinfo.SwapInAddresses
 import fr.acinq.phoenix.android.settings.walletinfo.SwapInSignerView
@@ -216,10 +217,10 @@ fun AppView(
                     )
                 }
                 composable(Screen.CreateWallet.route) {
-                    CreateWalletView(onSeedWritten = { navController.navigate(Screen.Startup.route) })
+                    CreateWalletView(onWalletCreated = { navController.navigate(Screen.Startup.route) })
                 }
                 composable(Screen.RestoreWallet.route) {
-                    RestoreWalletView(onSeedWritten = { navController.navigate(Screen.Startup.route) })
+                    RestoreWalletView(onRestoreDone = { navController.navigate(Screen.Startup.route) })
                 }
                 composable(Screen.Home.route) {
                     RequireStarted(walletState) {
@@ -466,6 +467,7 @@ fun AppView(
     val isDataMigrationExpected by LegacyPrefsDatastore.getDataMigrationExpected(context).collectAsState(initial = null)
     val lastCompletedPayment by business.paymentsManager.lastCompletedPayment.collectAsState()
     lastCompletedPayment?.let {
+        LocalBackupWorker.scheduleOnce(context)
 //        log.debug { "completed payment=${lastCompletedPayment?.id()} with data-migration=$isDataMigrationExpected" }
         LaunchedEffect(key1 = it.walletPaymentId()) {
             if (isDataMigrationExpected == false) {
