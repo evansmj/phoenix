@@ -25,6 +25,7 @@ import fr.acinq.lightning.TrampolineFees
 import fr.acinq.lightning.io.TcpSocket
 import fr.acinq.lightning.payment.LiquidityPolicy
 import fr.acinq.lightning.utils.ServerAddress
+import fr.acinq.lightning.utils.currentTimestampMillis
 import fr.acinq.lightning.utils.sat
 import fr.acinq.phoenix.android.utils.UserTheme
 import fr.acinq.phoenix.data.BitcoinUnit
@@ -39,6 +40,9 @@ import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class UserPrefsRepository(private val data: DataStore<Preferences>) {
 
@@ -69,7 +73,9 @@ class UserPrefsRepository(private val data: DataStore<Preferences>) {
         val PREFS_ELECTRUM_ADDRESS_PORT = intPreferencesKey("PREFS_ELECTRUM_ADDRESS_PORT")
         val PREFS_ELECTRUM_ADDRESS_PINNED_KEY = stringPreferencesKey("PREFS_ELECTRUM_ADDRESS_PINNED_KEY")
         // access control
-        val PREFS_SCREEN_LOCK = booleanPreferencesKey("PREFS_SCREEN_LOCK")
+        val PREFS_SCREEN_LOCK_BIOMETRICS = booleanPreferencesKey("PREFS_SCREEN_LOCK")
+        val PREFS_SCREEN_LOCK_CUSTOM_PIN_ENABLED = booleanPreferencesKey("PREFS_SCREEN_LOCK_CUSTOM_PIN_ENABLED")
+        val PREFS_CUSTOM_PIN_STATE = stringPreferencesKey("PREFS_CUSTOM_PIN_STATE")
         // payments options
         private val INVOICE_DEFAULT_DESC = stringPreferencesKey("INVOICE_DEFAULT_DESC")
         private val INVOICE_DEFAULT_EXPIRY = longPreferencesKey("INVOICE_DEFAULT_EXPIRY")
@@ -148,8 +154,27 @@ class UserPrefsRepository(private val data: DataStore<Preferences>) {
 
     // -- security
 
-    val getIsScreenLockActive: Flow<Boolean> = safeData.map { it[PREFS_SCREEN_LOCK] ?: false }
-    suspend fun saveIsScreenLockActive(isScreenLockActive: Boolean) = data.edit { it[PREFS_SCREEN_LOCK] = isScreenLockActive }
+    val getIsBiometricLockEnabled: Flow<Boolean> = safeData.map { it[PREFS_SCREEN_LOCK_BIOMETRICS] ?: false }
+    suspend fun saveIsBiometricLockEnabled(isEnabled: Boolean) = data.edit { it[PREFS_SCREEN_LOCK_BIOMETRICS] = isEnabled }
+
+    val getIsCustomPinLockEnabled: Flow<Boolean> = safeData.map { it[PREFS_SCREEN_LOCK_CUSTOM_PIN_ENABLED] ?: false }
+    suspend fun saveIsCustomPinLockEnabled(isEnabled: Boolean) = data.edit { it[PREFS_SCREEN_LOCK_CUSTOM_PIN_ENABLED] = isEnabled }
+
+    val getPinCodeState: Flow<PinCodeState> = safeData.map {
+        try {
+            it[PREFS_CUSTOM_PIN_STATE]?.let { state ->
+                json.decodeFromString<PinCodeState>(state)
+            }
+        } catch (e: Exception) {
+            log.error("failed to read custom pin state, disable pin")
+            val fallback = PinCodeState.Unlocked(currentTimestampMillis())
+            savePinCodeState(fallback)
+            fallback
+        } ?: PinCodeState.Unlocked(currentTimestampMillis())
+    }
+    suspend fun savePinCodeState(state: PinCodeState) = data.edit {
+        it[PREFS_CUSTOM_PIN_STATE] = json.encodeToString(state)
+    }
 
     val getInvoiceDefaultDesc: Flow<String> = safeData.map { it[INVOICE_DEFAULT_DESC]?.takeIf { it.isNotBlank() } ?: "" }
     suspend fun saveInvoiceDefaultDesc(description: String) = data.edit { it[INVOICE_DEFAULT_DESC] = description }
@@ -281,5 +306,43 @@ enum class SwapAddressFormat(val code: Int) {
             0 -> LEGACY
             else -> TAPROOT_ROTATE
         }
+    }
+}
+
+@Serializable
+/** Timestamps are all in milliseconds */
+sealed class PinCodeState {
+
+    @Serializable
+    /** In this state the wallet is unlocked. The wallet should lock again automatically after a certain duration. */
+    data class Unlocked(val wasUnlockedAt: Long) : PinCodeState() {
+        val willLockAt: Long = wasUnlockedAt + 5 * 60 * 1000L
+    }
+
+    @Serializable
+    /**
+     * In this state, the wallet is locked.
+     * @param failedAt Timestamp in millis of the last failed unlock attempt.
+     * @param attemptCount How many failed attempts were done in a row.
+     */
+    data class Locked(
+        val failedAt: Long,
+        val attemptCount: Int,
+    ) : PinCodeState() {
+
+        /** Time to wait before next unlock attempt. */
+        val delayForAttempt: Long = when (attemptCount) {
+            0, 1, 2 -> 0
+            3 -> 10.seconds.inWholeMilliseconds
+            4 -> 1.minutes.inWholeMilliseconds
+            5 -> 2.minutes.inWholeMilliseconds
+            6 -> 5.minutes.inWholeMilliseconds
+            7 -> 10.minutes.inWholeMilliseconds
+            8 -> 30.minutes.inWholeMilliseconds
+            else -> 1.hours.inWholeMilliseconds
+        }
+
+        /** Timestamp in millis after which a new unlock attempt can be performed. */
+        val canBeUnlockedAt: Long = failedAt + delayForAttempt
     }
 }
