@@ -146,6 +146,7 @@
 		DC5567452C2F1A6900008E11 /* ContactsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5567442C2F1A6900008E11 /* ContactsList.swift */; };
 		DC5631C72C5944CF00DCB5BF /* KotlinExtensions+Manager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5631C62C5944CF00DCB5BF /* KotlinExtensions+Manager.swift */; };
 		DC5631C82C59466000DCB5BF /* KotlinExtensions+Manager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5631C62C5944CF00DCB5BF /* KotlinExtensions+Manager.swift */; };
+		DC5631C52C541E5C00DCB5BF /* Experimental.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5631C42C541E5C00DCB5BF /* Experimental.swift */; };
 		DC59377127516297003B4B53 /* Sequence+Sum.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC59377027516296003B4B53 /* Sequence+Sum.swift */; };
 		DC5A935329846044004F19FD /* FileHandle+Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5A935229846043004F19FD /* FileHandle+Async.swift */; };
 		DC5CA4ED28F83C3B0048A737 /* DrainWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5CA4EC28F83C3B0048A737 /* DrainWalletView.swift */; };
@@ -554,6 +555,7 @@
 		DC4CF3CF2BEA8C13003A957F /* EditPinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditPinView.swift; sourceTree = "<group>"; };
 		DC5567442C2F1A6900008E11 /* ContactsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsList.swift; sourceTree = "<group>"; };
 		DC5631C62C5944CF00DCB5BF /* KotlinExtensions+Manager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KotlinExtensions+Manager.swift"; sourceTree = "<group>"; };
+		DC5631C42C541E5C00DCB5BF /* Experimental.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Experimental.swift; sourceTree = "<group>"; };
 		DC59377027516296003B4B53 /* Sequence+Sum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sequence+Sum.swift"; sourceTree = "<group>"; };
 		DC5A935229846043004F19FD /* FileHandle+Async.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileHandle+Async.swift"; sourceTree = "<group>"; };
 		DC5CA4EC28F83C3B0048A737 /* DrainWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrainWalletView.swift; sourceTree = "<group>"; };
@@ -1274,6 +1276,7 @@
 				DCFAEFC72A72F46D00330088 /* wallet */,
 				DCFFAADC2900218B004E3C11 /* channels */,
 				53BEF0A8669F9379E4E4596F /* logs */,
+				DC5631C42C541E5C00DCB5BF /* Experimental.swift */,
 			);
 			path = advanced;
 			sourceTree = "<group>";
@@ -2015,6 +2018,7 @@
 				DC5CA4ED28F83C3B0048A737 /* DrainWalletView.swift in Sources */,
 				DC784A112B31EA180018DC4A /* LiquidityAdsView.swift in Sources */,
 				DC6D26E329E76557006A7814 /* AnimatedClock.swift in Sources */,
+				DC5631C52C541E5C00DCB5BF /* Experimental.swift in Sources */,
 				DCF8E3AC2BC4968D009299EE /* LowMinerFeeWarning.swift in Sources */,
 				DCAC9FC329675E1A0098D769 /* NavigationWrapper.swift in Sources */,
 				DC65D86428E2F7D700686355 /* ResetWalletView_Action.swift in Sources */,

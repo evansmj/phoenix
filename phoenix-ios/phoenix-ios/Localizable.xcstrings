@@ -7823,6 +7823,9 @@
         }
       }
     },
+    "BIP353 DNS Address" : {
+
+    },
     "Bitcoin" : {
       "localizations" : {
         "ar" : {
@@ -9791,6 +9794,9 @@
           }
         }
       }
+    },
+    "Claim my address" : {
+
     },
     "claimed amount" : {
       "comment" : "Label in DetailsView_IncomingPayment",
@@ -16287,6 +16293,9 @@
           }
         }
       }
+    },
+    "Experimental" : {
+
     },
     "Expired" : {
       "localizations" : {
@@ -25472,6 +25481,9 @@
           }
         }
       }
+    },
+    "No address yet..." : {
+
     },
     "No available channels. Please check your internet connection." : {
       "localizations" : {
@@ -38549,6 +38561,9 @@
         }
       }
     },
+    "This is a human-readable address for your Bolt12 payment request." : {
+
+    },
     "This is a swap address. It is not controlled by your wallet. On-chain deposits sent to this address will be converted to Lightning channels." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39624,6 +39639,9 @@
           }
         }
       }
+    },
+    "Todo..." : {
+
     },
     "Tools" : {
       "localizations" : {
@@ -42624,6 +42642,9 @@
           }
         }
       }
+    },
+    "Want a prettier address? Use third-party services, or self-host the address!" : {
+
     },
     "Warning" : {
       "localizations" : {
