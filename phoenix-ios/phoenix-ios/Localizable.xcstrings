@@ -428,6 +428,7 @@
     },
     "(Bitcoin address)" : {
       "comment" : "Type of text being copied",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -999,6 +1000,9 @@
         }
       }
     },
+    "(image)" : {
+
+    },
     "(inclusive)" : {
       "comment" : "translate: inclusive",
       "localizations" : {
@@ -1126,6 +1130,7 @@
       }
     },
     "(QR code)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -1273,6 +1278,9 @@
           }
         }
       }
+    },
+    "(text)" : {
+
     },
     "(This is your address - derived from your seed. You alone possess your seed.)" : {
       "localizations" : {
@@ -11575,6 +11583,9 @@
         }
       }
     },
+    "Copied image to pasteboard!" : {
+      "comment" : "Toast message"
+    },
     "Copied QR code image to pasteboard!" : {
       "comment" : "Toast message",
       "localizations" : {
@@ -11899,6 +11910,7 @@
       }
     },
     "Copy Text" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -12057,6 +12069,9 @@
           }
         }
       }
+    },
+    "Copy: %@" : {
+
     },
     "Correct" : {
       "localizations" : {
@@ -22513,6 +22528,9 @@
         }
       }
     },
+    "Lightning address" : {
+      "comment" : "Type of text being copied"
+    },
     "lightning fee" : {
       "localizations" : {
         "ar" : {
@@ -22762,7 +22780,7 @@
       }
     },
     "Lightning invoice" : {
-      "extractionState" : "stale",
+      "comment" : "Type of text being copied",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -22882,6 +22900,9 @@
           }
         }
       }
+    },
+    "Lightning offer" : {
+      "comment" : "Type of text being copied"
     },
     "Lightning Offer" : {
       "comment" : "Secondary title"
@@ -33651,6 +33672,7 @@
       }
     },
     "Share Text" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -33803,6 +33825,9 @@
           }
         }
       }
+    },
+    "Share: %@" : {
+
     },
     "Short Description" : {
       "localizations" : {
@@ -37500,6 +37525,9 @@
         }
       }
     },
+    "The request timed out. Please check your internet connection and try again." : {
+
+    },
     "The scanned QR code is not a bitcoin address" : {
       "comment" : "Error message - parsing bitcoin address",
       "localizations" : {
@@ -39639,9 +39667,6 @@
           }
         }
       }
-    },
-    "Todo..." : {
-
     },
     "Tools" : {
       "localizations" : {
@@ -44669,6 +44694,9 @@
           }
         }
       }
+    },
+    "You need at least one channel to claim your address. Try adding funds to your wallet and try again." : {
+
     },
     "You scanned a bitcoin address. Phoenix currently only supports sending Lightning payments. You can use a third-party service to make the offchain->onchain swap." : {
       "comment" : "Error message - scanning lightning invoice",

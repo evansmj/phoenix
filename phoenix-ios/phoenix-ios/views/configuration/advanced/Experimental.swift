@@ -82,6 +82,7 @@ struct Experimental: View {
 			if let address {
 				HStack(alignment: VerticalAlignment.center, spacing: 4) {
 					Text(address)
+					Spacer(minLength: 0)
 					Button {
 						copyText(address)
 					} label: {
@@ -111,6 +112,7 @@ struct Experimental: View {
 				)
 				.font(.subheadline)
 				.foregroundColor(.secondary)
+				.padding(.top, 8)
 			}
 			
 		} // </VStack>
@@ -140,7 +142,6 @@ struct Experimental: View {
 				}
 				.buttonStyle(.borderedProminent)
 				.buttonBorderShape(.capsule)
-			//	.foregroundColor(hasName ? Color.appNegative : Color.appNegative.opacity(0.6))
 				.disabled(isClaiming)
 				
 				Spacer(minLength: 10)
@@ -152,7 +153,23 @@ struct Experimental: View {
 	func section_bip353_error(_ err: ClaimError) -> some View {
 		
 		Label {
-			Text("Todo...")
+			switch err {
+			case .noChannels:
+				Text(
+					"""
+					You need at least one channel to claim your address. \
+					Try adding funds to your wallet and try again.
+					"""
+				)
+				
+			case .timeout:
+				Text(
+					"""
+					The request timed out. \
+					Please check your internet connection and try again.
+					"""
+				)
+			}
 		} icon: {
 			Image(systemName: "exclamationmark.triangle")
 				.foregroundColor(.appNegative)
@@ -166,13 +183,16 @@ struct Experimental: View {
 	func claimButtonTapped() {
 		log.trace("claimButtonTapped")
 		
-//		guard let peer = Biz.business.peerManager.peerStateValue() else {
-//			return
-//		}
-		
 		let channels = Biz.business.peerManager.channelsValue()
 		guard !channels.isEmpty else {
 			claimError = .noChannels
+			return
+		}
+		
+		guard
+			let peer = Biz.business.peerManager.peerStateValue(),
+			!isClaiming
+		else {
 			return
 		}
 		
@@ -199,15 +219,15 @@ struct Experimental: View {
 			}
 		}
 		
-//		Task { @MainActor in
-//			do {
-//				let addr = try await peer.requestAddress(languageSubtag: "en")
-//				finish(.success(addr))
-//				
-//			} catch {
-//				finish(.failure(.timeout))
-//			}
-//		}
+		Task { @MainActor in
+			do {
+				let addr = try await peer.requestAddress(languageSubtag: "en")
+				finish(.success(addr))
+				
+			} catch {
+				finish(.failure(.timeout))
+			}
+		}
 		
 		Task { @MainActor in
 			try await Task.sleep(seconds: 5)

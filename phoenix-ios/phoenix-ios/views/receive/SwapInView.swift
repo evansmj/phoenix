@@ -22,11 +22,6 @@ enum SwapInAddressType: CustomStringConvertible{
 
 struct SwapInView: View {
 	
-	enum ReceiveViewSheet {
-		case sharingUrl(url: String)
-		case sharingImg(img: UIImage)
-	}
-	
 	@ObservedObject var toast: Toast
 	
 	@State var swapInAddress: String? = nil
@@ -34,7 +29,11 @@ struct SwapInView: View {
 	
 	@StateObject var qrCode = QRCode()
 	
-	@State var activeSheet: ReceiveViewSheet? = nil
+	enum ActiveSheet {
+		case sharingText(text: String)
+		case sharingImage(image: UIImage)
+	}
+	@State var activeSheet: ActiveSheet? = nil
 	
 	let swapInWalletPublisher = Biz.business.balanceManager.swapInWalletPublisher()
 	@State var swapInWallet = Biz.business.balanceManager.swapInWalletValue()
@@ -116,14 +115,14 @@ struct SwapInView: View {
 			set: { if !$0 { activeSheet = nil }}
 		)) {
 			switch activeSheet! {
-			case .sharingUrl(let sharingUrl):
+			case .sharingText(let text):
 
-				let items: [Any] = [sharingUrl]
+				let items: [Any] = [text]
 				ActivityView(activityItems: items, applicationActivities: nil)
 			
-			case .sharingImg(let sharingImg):
+			case .sharingImage(let image):
 
-				let items: [Any] = [sharingImg]
+				let items: [Any] = [image]
 				ActivityView(activityItems: items, applicationActivities: nil)
 				
 			} // </switch>
@@ -219,7 +218,7 @@ struct SwapInView: View {
 				.multilineTextAlignment(.center)
 				.contextMenu {
 					Button {
-						didTapCopyButton()
+						copyTextToPasteboard()
 					} label: {
 						Text("Copy")
 					}
@@ -290,7 +289,7 @@ struct SwapInView: View {
 			didLongPressCopyButton()
 		})
 		.simultaneousGesture(TapGesture().onEnded {
-			didTapCopyButton()
+			copyTextToPasteboard()
 		})
 		.accessibilityAction(named: "Copy Text (bitcoin address)") {
 			copyTextToPasteboard()
@@ -316,7 +315,7 @@ struct SwapInView: View {
 			didLongPressShareButton()
 		})
 		.simultaneousGesture(TapGesture().onEnded {
-			didTapShareButton()
+			shareTextToSystem()
 		})
 		.accessibilityAction(named: "Share Text (bitcoin address)") {
 			shareTextToSystem()
@@ -436,41 +435,48 @@ struct SwapInView: View {
 	// MARK: Actions
 	// --------------------------------------------------
 	
-	func didTapCopyButton() -> Void {
-		log.trace("didTapCopyButton()")
-		
-		copyTextToPasteboard()
-	}
-	
 	func didLongPressCopyButton() -> Void {
 		log.trace("didLongPressCopyButton()")
 		
-		smartModalState.display(dismissable: true) {
-			
-			CopyOptionsSheet(
-				textType: String(localized: "(Bitcoin address)", comment: "Type of text being copied"),
-				copyText: {	copyTextToPasteboard() },
-				copyImage: { copyImageToPasteboard() }
-			)
-		}
-	}
-	
-	func didTapShareButton() {
-		log.trace("didTapShareButton()")
-		
-		shareTextToSystem()
+		showCopyShareOptionsSheet(.copy)
 	}
 	
 	func didLongPressShareButton() {
 		log.trace("didLongPressShareButton()")
 		
+		showCopyShareOptionsSheet(.share)
+	}
+	
+	func showCopyShareOptionsSheet(_ type: CopyShareOptionsSheet.ActionType) {
+		log.trace("showCopyShareOptionsSheet(_)")
+		
+		let exportText = { () -> () -> Void in
+			switch type {
+				case .copy  : return { copyTextToPasteboard() }
+				case .share : return { shareTextToSystem() }
+			}
+		}
+		let exportImage = { () -> () -> Void in
+			switch type {
+				case .copy  : return { copyImageToPasteboard() }
+				case .share : return { shareImageToSystem() }
+			}
+		}
+		
+		var sources: [SourceInfo] = []
+		sources.append(SourceInfo(
+			type: .text,
+			name: String(localized: "Bitcoin address", comment: "Type of text being copied"),
+			callback: exportText()
+		))
+		sources.append(SourceInfo(
+			type: .image,
+			name: String(localized: "QR code", comment: "Type of image being copied"),
+			callback: exportImage()
+		))
+		
 		smartModalState.display(dismissable: true) {
-					
-			ShareOptionsSheet(
-				textType: NSLocalizedString("(Bitcoin address)", comment: "Type of text being copied"),
-				shareText: { shareTextToSystem() },
-				shareImage: { shareImageToSystem() }
-			)
+			CopyShareOptionsSheet(type: type, sources: sources)
 		}
 	}
 	
@@ -478,7 +484,6 @@ struct SwapInView: View {
 		log.trace("didTapEditButton()")
 		
 		smartModalState.display(dismissable: true) {
-					
 			BtcAddrOptionsSheet(swapInAddressType: $swapInAddressType)
 		}
 	}
@@ -502,11 +507,7 @@ struct SwapInView: View {
 	func copyImageToPasteboard() -> Void {
 		log.trace("copyImageToPasteboard()")
 		
-		if let address = swapInAddress,
-			let qrCodeValue = qrCode.value,
-			qrCodeValue.caseInsensitiveCompare(address) == .orderedSame,
-			let qrCodeCgImage = qrCode.cgImage
-		{
+		if let qrCodeCgImage = qrCode.cgImage {
 			let uiImg = UIImage(cgImage: qrCodeCgImage)
 			UIPasteboard.general.image = uiImg
 			toast.pop(
@@ -521,20 +522,16 @@ struct SwapInView: View {
 		
 		if let address = swapInAddress {
 			let url = "bitcoin:\(address)"
-			activeSheet = ReceiveViewSheet.sharingUrl(url: url)
+			activeSheet = ActiveSheet.sharingText(text: url)
 		}
 	}
 	
 	func shareImageToSystem() {
 		log.trace("shareImageToSystem()")
 		
-		if let address = swapInAddress,
-			let qrCodeValue = qrCode.value,
-			qrCodeValue.caseInsensitiveCompare(address) == .orderedSame,
-			let qrCodeCgImage = qrCode.cgImage
-		{
+		if let qrCodeCgImage = qrCode.cgImage {
 			let uiImg = UIImage(cgImage: qrCodeCgImage)
-			activeSheet = ReceiveViewSheet.sharingImg(img: uiImg)
+			activeSheet = ActiveSheet.sharingImage(image: uiImg)
 		}
 	}
 }

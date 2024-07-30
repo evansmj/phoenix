@@ -27,11 +27,13 @@ struct LightningDualView: View {
 	}
 	@State var activeType: LightningType = .bolt11_invoice
 	
-	enum ReceiveViewSheet {
-		case sharingUrl(url: String)
-		case sharingImg(img: UIImage)
+	@State var bip353Address: String? = nil
+	
+	enum ActiveSheet {
+		case sharingText(text: String)
+		case sharingImage(image: UIImage)
 	}
-	@State var activeSheet: ReceiveViewSheet? = nil
+	@State var activeSheet: ActiveSheet? = nil
 	
 	@State var notificationPermissions = NotificationsManager.shared.permissions.value
 	
@@ -112,14 +114,14 @@ struct LightningDualView: View {
 			set: { if !$0 { activeSheet = nil }}
 		)) {
 			switch activeSheet! {
-			case .sharingUrl(let sharingUrl):
+			case .sharingText(let text):
 				
-				let items: [Any] = [sharingUrl]
+				let items: [Any] = [text]
 				ActivityView(activityItems: items, applicationActivities: nil)
 			
-			case .sharingImg(let sharingImg):
+			case .sharingImage(let image):
 				
-				let items: [Any] = [sharingImg]
+				let items: [Any] = [image]
 				ActivityView(activityItems: items, applicationActivities: nil)
 			
 			} // </switch>
@@ -174,7 +176,7 @@ struct LightningDualView: View {
 					.padding(.horizontal)
 			}
 			
-			qrCodeInfo()
+			detailedInfo()
 				.padding(.horizontal, 20)
 				.padding(.vertical)
 			
@@ -310,7 +312,7 @@ struct LightningDualView: View {
 	}
 	
 	@ViewBuilder
-	func qrCodeInfo() -> some View {
+	func detailedInfo() -> some View {
 		
 		VStack(alignment: .center, spacing: 10) {
 		
@@ -325,9 +327,24 @@ struct LightningDualView: View {
 					.foregroundColor(.secondary)
 				
 			} else {
-				addressView()
+				offerAddressView()
 					.font(.footnote)
 					.foregroundColor(.secondary)
+				
+				if let bip353Address {
+					Text(bip353Address)
+						.lineLimit(2)
+						.multilineTextAlignment(.center)
+						.font(.footnote)
+						.foregroundColor(.secondary)
+						.contextMenu {
+							Button {
+								copyTextToPasteboard(bip353Address)
+							} label: {
+								Text("Copy")
+							}
+						}
+				}
 			}
 		}
 	}
@@ -358,16 +375,15 @@ struct LightningDualView: View {
 	}
 	
 	@ViewBuilder
-	func addressView() -> some View {
+	func offerAddressView() -> some View {
 		
 		if let offerStr = qrCode.value {
 			Text(offerStr)
-				.lineLimit(2)
-				.multilineTextAlignment(.center)
+				.lineLimit(1)
 				.truncationMode(.middle)
 				.contextMenu {
 					Button {
-						didTapCopyButton()
+						copyTextToPasteboard(offerStr)
 					} label: {
 						Text("Copy")
 					}
@@ -450,7 +466,7 @@ struct LightningDualView: View {
 			didLongPressCopyButton()
 		})
 		.simultaneousGesture(TapGesture().onEnded {
-			didTapCopyButton()
+			copyTextToPasteboard()
 		})
 		.accessibilityAction(named: "Copy Text (lightning invoice)") {
 			copyTextToPasteboard()
@@ -476,7 +492,7 @@ struct LightningDualView: View {
 			didLongPressShareButton()
 		})
 		.simultaneousGesture(TapGesture().onEnded {
-			didTapShareButton()
+			shareTextToSystem()
 		})
 		.accessibilityAction(named: "Share Text (lightning invoice)") {
 			shareTextToSystem()
@@ -774,41 +790,78 @@ struct LightningDualView: View {
 		}
 	}
 	
-	func didTapCopyButton() {
-		log.trace("didTapCopyButton()")
-		
-		copyTextToPasteboard()
-	}
-	
 	func didLongPressCopyButton() {
 		log.trace("didLongPressCopyButton()")
 		
-		smartModalState.display(dismissable: true) {
-			
-			CopyOptionsSheet(
-				textType: textType(),
-				copyText: { copyTextToPasteboard() },
-				copyImage: { copyImageToPasteboard() }
-			)
-		}
-	}
-	
-	func didTapShareButton() -> Void {
-		log.trace("didTapShareButton()")
-		
-		shareTextToSystem()
+		showCopyShareOptionsSheet(.copy)
 	}
 	
 	func didLongPressShareButton() -> Void {
 		log.trace("didLongPressShareButton()")
 		
-		smartModalState.display(dismissable: true) {
+		showCopyShareOptionsSheet(.share)
+	}
+	
+	func showCopyShareOptionsSheet(_ type: CopyShareOptionsSheet.ActionType) {
+		log.trace("showCopyShareOptionsSheet(_)")
+		
+		let exportText = { (text: String) -> () -> Void in
+			switch type {
+				case .copy  : return { copyTextToPasteboard(text) }
+				case .share : return { shareTextToSystem(text) }
+			}
+		}
+		let exportImage = { (img: CGImage) -> () -> Void in
+			switch type {
+				case .copy  : return { copyImageToPasteboard(img) }
+				case .share : return { shareImageToSystem(img) }
+			}
+		}
+		
+		var sources: [SourceInfo] = []
+		switch activeType {
+		case .bolt11_invoice:
+			if let invoiceText = qrCode.value {
+				sources.append(SourceInfo(
+					type: .text,
+					name: String(localized: "Lightning invoice", comment: "Type of text being copied"),
+					callback: exportText(invoiceText)
+				))
+			}
+			if let invoiceImage = qrCode.cgImage {
+				sources.append(SourceInfo(
+					type: .image,
+					name: String(localized: "QR code", comment: "Type of image being copied"),
+					callback: exportImage(invoiceImage)
+				))
+			}
 			
-			ShareOptionsSheet(
-				textType: textType(),
-				shareText: { shareTextToSystem() },
-				shareImage: { shareImageToSystem() }
-			)
+		case .bolt12_offer:
+			if let offerText = qrCode.value {
+				sources.append(SourceInfo(
+					type: .text,
+					name: String(localized: "Lightning offer", comment: "Type of text being copied"),
+					callback: exportText(offerText)
+				))
+			}
+			if let address = bip353Address {
+				sources.append(SourceInfo(
+					type: .text,
+					name: String(localized: "Lightning address", comment: "Type of text being copied"),
+					callback: exportText(address)
+				))
+			}
+			if let offerImage = qrCode.cgImage {
+				sources.append(SourceInfo(
+					type: .image,
+					name: String(localized: "QR code", comment: "Type of image being copied"),
+					callback: exportImage(offerImage)
+				))
+			}
+		} // </switch>
+		
+		smartModalState.display(dismissable: true) {
+			CopyShareOptionsSheet(type: type, sources: sources)
 		}
 	}
 	
@@ -844,6 +897,10 @@ struct LightningDualView: View {
 				qrCode.generate(value: offerStr)
 			} else {
 				qrCode.clear()
+			}
+			
+			if bip353Address == nil {
+				bip353Address = AppSecurity.shared.getBip353Address()
 			}
 			
 		case .bolt12_offer:
@@ -890,50 +947,72 @@ struct LightningDualView: View {
 	// MARK: Utilities
 	// --------------------------------------------------
 	
-	func copyTextToPasteboard() -> Void {
+	func copyTextToPasteboard() {
 		log.trace("copyTextToPasteboard()")
 		
 		if let qrCodeValue = qrCode.value {
-			UIPasteboard.general.string = qrCodeValue
-			toast.pop(
-				NSLocalizedString("Copied to pasteboard!", comment: "Toast message"),
-				colorScheme: colorScheme.opposite,
-				style: .chrome
-			)
+			copyTextToPasteboard(qrCodeValue)
 		}
 	}
 	
-	func copyImageToPasteboard() -> Void {
+	func copyTextToPasteboard(_ text: String) {
+		log.trace("copyTextToPasteboard(_)")
+		
+		UIPasteboard.general.string = text
+		toast.pop(
+			NSLocalizedString("Copied to pasteboard!", comment: "Toast message"),
+			colorScheme: colorScheme.opposite,
+			style: .chrome
+		)
+	}
+	
+	func copyImageToPasteboard() {
 		log.trace("copyImageToPasteboard()")
 		
 		if let qrCodeCgImage = qrCode.cgImage {
-			let uiImg = UIImage(cgImage: qrCodeCgImage)
-			UIPasteboard.general.image = uiImg
-			toast.pop(
-				NSLocalizedString("Copied QR code image to pasteboard!", comment: "Toast message"),
-				colorScheme: colorScheme.opposite
-			)
+			copyImageToPasteboard(qrCodeCgImage)
 		}
 	}
 	
-	func shareTextToSystem() -> Void {
+	func copyImageToPasteboard(_ cgImage: CGImage) {
+		log.trace("copyImageToPasteboard(_)")
+		
+		let uiImg = UIImage(cgImage: cgImage)
+		UIPasteboard.general.image = uiImg
+		toast.pop(
+			NSLocalizedString("Copied image to pasteboard!", comment: "Toast message"),
+			colorScheme: colorScheme.opposite
+		)
+	}
+	
+	func shareTextToSystem() {
 		log.trace("shareTextToSystem()")
 		
 		if let qrCodeValue = qrCode.value {
-			withAnimation {
-				let url = "lightning:\(qrCodeValue)"
-				activeSheet = ReceiveViewSheet.sharingUrl(url: url)
-			}
+			let url = "lightning:\(qrCodeValue)" // why are we only doing this here ???
+			shareTextToSystem(url)
 		}
 	}
 	
-	func shareImageToSystem() -> Void {
+	func shareTextToSystem(_ text: String) {
+		log.trace("shareTextToSystem(_)")
+		
+		activeSheet = ActiveSheet.sharingText(text: text)
+	}
+	
+	func shareImageToSystem() {
 		log.trace("shareImageToSystem()")
 		
 		if let qrCodeCgImage = qrCode.cgImage {
-			let uiImg = UIImage(cgImage: qrCodeCgImage)
-			activeSheet = ReceiveViewSheet.sharingImg(img: uiImg)
+			shareImageToSystem(qrCodeCgImage)
 		}
+	}
+	
+	func shareImageToSystem(_ cgImage: CGImage) {
+		log.trace("shareImageToSystem(_)")
+		
+		let uiImg = UIImage(cgImage: cgImage)
+		activeSheet = ActiveSheet.sharingImage(image: uiImg)
 	}
 }
 
